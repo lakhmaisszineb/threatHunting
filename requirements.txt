@@ -1,0 +1,9 @@
+# Core
+scapy>=2.5.0
+pydantic>=2.0
+python-dotenv>=1.0
+
+# Data handling
+pandas>=2.0
+orjson>=3.9          # parsing JSON ultra-rapide
+
