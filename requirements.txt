@@ -1,9 +1,16 @@
-# Core
-scapy>=2.5.0
-pydantic>=2.0
-python-dotenv>=1.0
-
-# Data handling
-pandas>=2.0
-orjson>=3.9          # parsing JSON ultra-rapide
-
+annotated-types==0.8.0
+markdown-it-py==4.3.0
+mdurl==0.1.2
+numpy==2.5.4
+orjson==3.13.0
+pandas==3.1.1
+pydantic==2.14.3
+pydantic_core==2.50.4
+Pygments==2.21.0
+python-dateutil==4.0.0
+python-dotenv==1.2.4
+rich==15.0.0
+scapy==2.8.0
+typing-inspection==0.4.5
+typing_extensions==4.16.0
+tzdata==2026.6
