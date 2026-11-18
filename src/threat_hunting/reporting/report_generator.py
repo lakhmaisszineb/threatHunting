@@ -4,7 +4,7 @@ Produit un rapport structuré + version texte lisible.
 """
 
 from typing import Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timezone
 import orjson
 from pathlib import Path
 
@@ -22,7 +22,7 @@ class ReportGenerator:
 
         report = {
             "meta": {
-                "generated_at": datetime.utcnow().isoformat() + "Z",
+                "generated_at": datetime.now(timezone.utc).isoformat(),
                 "version": "0.1.0-week2",
                 "type": "initial_investigation_report"
             },

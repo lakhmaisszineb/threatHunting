@@ -50,3 +50,13 @@ Thumbs.db
 *.log
 tmp/
 temp/
+
+# Rapports générés par les tests
+data/reports/
+*.json
+!requirements.txt
+
+# Fichiers de test temporaires
+src/threat_hunting/run_*_test.py
+**/test_output/
+**/tmp_reports/
