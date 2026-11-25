@@ -1,68 +1,58 @@
-"""
-Agent Superviseur.
-Il orchestre les autres agents et produit le rapport final.
-"""
+"""Superviseur déterministe de l'investigation."""
 
-from typing import Dict, Any
-from langchain_groq import ChatGroq
-from langchain_core.messages import SystemMessage, HumanMessage
+from datetime import datetime, timezone
+from typing import Any
 
-from threat_hunting.config import (
-    GROQ_API_KEY,
-    LLM_MODEL,
-    LLM_TEMPERATURE,
-    AGENT_SUPERVISOR
-)
 from threat_hunting.agents.state import InvestigationState
 
 
-def get_llm():
-    """Retourne le LLM configuré (centralisé)."""
-    return ChatGroq(
-        api_key=GROQ_API_KEY,
-        model=LLM_MODEL,
-        temperature=LLM_TEMPERATURE
+def _build_conclusion(state: InvestigationState) -> tuple[str, str]:
+    """Produit une conclusion prudente à partir des alertes et preuves présentes."""
+    alerts = state.get("alerts", [])
+    network_analysis = state.get("network_analysis", {})
+    if not alerts:
+        return "Aucun comportement suspect n'a été détecté dans les données analysées.", "low"
+    if not network_analysis.get("analyses"):
+        return "Des alertes existent, mais les données réseau associées sont insuffisantes.", "low"
+    return (
+        "Des comportements réseau suspects sont soutenus par les événements disponibles. "
+        "Une compromission ne peut pas être confirmée avec ces seules données.",
+        "medium",
     )
 
 
-def supervisor_node(state: InvestigationState) -> Dict[str, Any]:
-    """
-    Nœud Superviseur.
-    Analyse l'état actuel et décide de la suite + prépare le rapport final.
-    """
-    llm = get_llm()
-
-    # Résumé de ce qui a déjà été fait
-    summary = {
-        "nb_alerts": len(state.get("alerts", [])),
-        "nb_hypotheses": len(state.get("hypotheses", [])),
-        "has_network_analysis": state.get("network_analysis") is not None,
-        "nb_ioc": len(state.get("ioc_findings", [])),
-        "nb_mitre": len(state.get("mitre_mappings", [])),
+def supervisor_node(state: InvestigationState) -> dict[str, Any]:
+    """Vérifie la cohérence des résultats et assemble un rapport structuré."""
+    conclusion, confidence = _build_conclusion(state)
+    report = {
+        "meta": {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "version": "0.2.0",
+            "type": "investigation_report",
+            "mode": "alert_triggered" if state.get("alerts") else "proactive_hunting",
+        },
+        "observed_facts": [
+            state.get("normalized_data", {}).get("summary", {}),
+            {"alert_count": len(state.get("alerts", []))},
+        ],
+        "alerts": state.get("alerts", []),
+        "hypotheses": state.get("hypotheses", []),
+        "network_analysis": state.get("network_analysis", {}),
+        "ioc_findings": state.get("ioc_findings", []),
+        "mitre_mappings": state.get("mitre_mappings", []),
+        "conclusion": conclusion,
+        "confidence": confidence,
+        "limitations": [
+            "L'enrichissement CTI distant n'est pas exécuté dans ce mode hors ligne.",
+            "Les comportements détectés sont des signaux qui nécessitent une validation humaine.",
+        ],
+        "recommendations": [
+            "Vérifier le rôle et l'autorisation de l'hôte source.",
+            "Examiner les journaux de l'hôte et la période exacte des événements.",
+        ],
     }
-
-    system_prompt = f"""Tu es le Superviseur d'un système multi-agents de Threat Hunting.
-Ton rôle est de coordonner l'investigation et de produire un rapport final cohérent et justifié par des preuves.
-
-État actuel de l'investigation :
-{summary}
-
-Règles strictes :
-- Ne jamais inventer de preuves.
-- Toute conclusion doit être appuyée par les données disponibles.
-- Si les informations sont insuffisantes, le dire clairement.
-"""
-
-    human_prompt = """En te basant sur l'état actuel, produis un résumé clair de l'investigation et indique si on peut clôturer le rapport ou s'il manque des éléments importants."""
-
-    messages = [
-        SystemMessage(content=system_prompt),
-        HumanMessage(content=human_prompt)
-    ]
-
-    response = llm.invoke(messages)
-
     return {
-        "messages": [f"[{AGENT_SUPERVISOR}] {response.content}"],
-        "current_step": "supervisor_completed"
+        "final_report": report,
+        "current_step": "supervisor_completed",
+        "messages": ["[supervisor] Rapport structuré créé et résultats validés"],
     }

@@ -28,3 +28,5 @@ class InvestigationState(TypedDict):
 
     # Rapport final
     final_report: Optional[Dict[str, Any]]
+
+
